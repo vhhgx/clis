@@ -4,7 +4,7 @@
   "description": "一个命令行工具项目",
   "main": "src/main.js",
   "bin": {
-    "vh-cli": "./bin/cli.js"
+    "vli": "./bin/cli.js"
   },
   "scripts": {
     "start": "node src/main.js",
