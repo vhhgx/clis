@@ -1,0 +1,34 @@
+{
+  "name": "<%= config.name %>",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "<% if (config.features.includes('typescript')) { %>vue-tsc && <% } %>vite build",
+    "preview": "vite preview"<% if (config.features.includes('linter')) { %>,
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs<% if (config.features.includes('typescript')) { %>,.ts,.tsx,.cts,.mts<% } %> --fix --ignore-path .gitignore"<% } %><% if (config.features.includes('unit-testing')) { %>,
+    "test": "vitest"<% } %><% if (config.features.includes('e2e-testing')) { %>,
+    "test:e2e": "cypress open"<% } %>
+  },
+  "dependencies": {
+    "vue": "^3.3.4"<% if (config.features.includes('router')) { %>,
+    "vue-router": "^4.2.5"<% } %><% if (config.features.includes('store')) { %>,
+    "pinia": "^2.1.7"<% } %>
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.3.4",
+    "vite": "^4.4.9"<% if (config.features.includes('typescript')) { %>,
+    "typescript": "^5.2.2",
+    "vue-tsc": "^1.8.15"<% } %><% if (config.cssPreprocessor === 'sass') { %>,
+    "sass": "^1.69.0"<% } %><% if (config.cssPreprocessor === 'less') { %>,
+    "less": "^4.2.0"<% } %><% if (config.cssPreprocessor === 'stylus') { %>,
+    "stylus": "^0.60.0"<% } %><% if (config.features.includes('linter')) { %>,
+    "eslint": "^8.51.0",
+    "eslint-plugin-vue": "^9.17.0"<% if (config.features.includes('typescript')) { %>,
+    "@typescript-eslint/eslint-plugin": "^6.8.0",
+    "@typescript-eslint/parser": "^6.8.0"<% } %><% } %><% if (config.features.includes('unit-testing')) { %>,
+    "vitest": "^0.34.6",
+    "@vue/test-utils": "^2.4.1"<% } %><% if (config.features.includes('e2e-testing')) { %>,
+    "cypress": "^13.3.0"<% } %>
+  }
+}

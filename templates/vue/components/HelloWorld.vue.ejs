@@ -1,0 +1,54 @@
+<template>
+  <div class="hello">
+    <h1>{{ msg }}</h1>
+    <p>
+      For a guide and recipes on how to configure / customize this project,<br>
+      check out the
+      <a href="https://vitejs.dev/guide/" target="_blank" rel="noopener">Vite Documentation</a> and
+      <a href="https://vuejs.org/guide/" target="_blank" rel="noopener">Vue 3 Documentation</a>.
+    </p>
+    <h3>Installed Features</h3>
+    <ul>
+      <% config.features.forEach(function(feature) { %>
+      <li><%= feature %></li>
+      <% }); %>
+    </ul>
+  </div>
+</template>
+
+<script<%= config.features.includes('typescript') ? ' lang="ts"' : '' %>>
+<% if (config.features.includes('typescript')) { %>
+import { defineComponent } from 'vue'
+
+export default defineComponent({
+  name: 'HelloWorld',
+  props: {
+    msg: String
+  }
+})
+<% } else { %>
+export default {
+  name: 'HelloWorld',
+  props: {
+    msg: String
+  }
+}
+<% } %>
+</script>
+
+<style<% if (config.cssPreprocessor) { %> lang="<%= config.cssPreprocessor === 'sass' ? 'scss' : config.cssPreprocessor %>"<% } %> scoped>
+h3 {
+  margin: 40px 0 0;
+}
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+li {
+  display: inline-block;
+  margin: 0 10px;
+}
+a {
+  color: #42b983;
+}
+</style>

@@ -1,0 +1,52 @@
+<template>
+  <div id="app">
+    <img alt="Vue logo" src="./assets/logo.png" />
+    <% if (config.features.includes('router')) { %>
+    <router-view></router-view>
+    <% } else { %>
+    <HelloWorld msg="Welcome to Your Vue.js<%= config.features.includes('typescript') ? ' + TypeScript' : '' %> App"/>
+    <% } %>
+  </div>
+</template>
+
+<script<%= config.features.includes('typescript') ? ' lang="ts"' : '' %>>
+<% if (config.features.includes('typescript')) { %>
+import { defineComponent } from 'vue'
+<% if (!config.features.includes('router')) { %>
+import HelloWorld from './components/HelloWorld.vue'
+<% } %>
+
+export default defineComponent({
+  name: 'App',
+  <% if (!config.features.includes('router')) { %>
+  components: {
+    HelloWorld
+  },
+  <% } %>
+})
+<% } else { %>
+<% if (!config.features.includes('router')) { %>
+import HelloWorld from './components/HelloWorld.vue'
+<% } %>
+
+export default {
+  name: 'App',
+  <% if (!config.features.includes('router')) { %>
+  components: {
+    HelloWorld
+  },
+  <% } %>
+}
+<% } %>
+</script>
+
+<style<% if (config.cssPreprocessor === 'sass') { %> lang="scss"<% } else if (config.cssPreprocessor === 'less') { %> lang="less"<% } else if (config.cssPreprocessor === 'stylus') { %> lang="stylus"<% } %>>
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  color: #2c3e50;
+  margin-top: 60px;
+}
+</style>

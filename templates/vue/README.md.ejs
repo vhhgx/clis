@@ -1,0 +1,42 @@
+# <%= config.name %>
+
+This template should help get you started developing with Vue 3<%= config.features.includes('typescript') ? ' and TypeScript' : '' %> in Vite.
+
+## Project Setup
+
+```sh
+npm install
+```
+
+### Compile and Hot-Reload for Development
+
+```sh
+npm run dev
+```
+
+### <%= config.features.includes('typescript') ? 'Type-Check, ' : '' %>Compile and Minify for Production
+
+```sh
+npm run build
+```
+<% if (config.features.includes('linter')) { %>
+### Lint with [ESLint](https://eslint.org/)
+
+```sh
+npm run lint
+```
+<% } %>
+<% if (config.features.includes('unit-testing')) { %>
+### Run Unit Tests with [Vitest](https://vitest.dev/)
+
+```sh
+npm run test
+```
+<% } %>
+<% if (config.features.includes('e2e-testing')) { %>
+### Run End-to-End Tests with [Cypress](https://www.cypress.io/)
+
+```sh
+npm run test:e2e
+```
+<% } %>

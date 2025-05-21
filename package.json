@@ -1,25 +1,15 @@
 {
-  "name": "vh-cli",
+  "name": "your-cli-tool-name",
   "version": "1.0.0",
-  "description": "一个命令行工具项目",
-  "main": "src/main.js",
+  "description": "Modern CLI for creating different types of projects",
   "bin": {
     "vli": "./bin/cli.js"
   },
-  "scripts": {
-    "start": "node src/main.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [
-    "cli",
-    "tool"
-  ],
-  "author": "你的名字",
-  "license": "MIT",
   "dependencies": {
-    "@inquirer/prompts": "^7.2.0",
-    "commander": "^12.1.0",
-    "ejs": "^3.1.10",
-    "inquirer": "^12.2.0"
+    "commander": "^11.1.0",
+    "ejs": "^3.1.9",
+    "ora": "^5.4.1",
+    "prompts": "^2.4.2",
+    "axios": "^1.5.0"
   }
 }

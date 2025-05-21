@@ -1,0 +1,18 @@
+import { createApp } from 'vue'
+import App from './App.vue'
+<% if (config.features.includes('router')) { %>
+import router from './router'
+<% } %>
+<% if (config.features.includes('store')) { %>
+import { createPinia } from 'pinia'
+<% } %>
+
+const app = createApp(App)
+<% if (config.features.includes('router')) { %>
+app.use(router)
+<% } %>
+<% if (config.features.includes('store')) { %>
+app.use(createPinia())
+<% } %>
+
+app.mount('#app')
