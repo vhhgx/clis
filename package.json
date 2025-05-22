@@ -1,6 +1,7 @@
 {
   "name": "your-cli-tool-name",
   "version": "1.0.0",
+  "type": "module",
   "description": "Modern CLI for creating different types of projects",
   "bin": {
     "vli": "./bin/cli.js"

@@ -1,569 +1,74 @@
 #!/usr/bin/env node
 
-const { program } = require('commander');
-const prompts = require('prompts');
-const path = require('path');
-const fs = require('fs');
-const { execSync } = require('child_process');
-const ora = require('ora');
+import { program } from 'commander'
+// import chooseFramework from '../src/prompts/chooseFramework.js';
+// import { promptVueFeatures } from '../src/prompts/vue/features.js'
+// import { promptNuxtFeatures } from '../src/prompts/nuxt/features.js'
+// import { promptKoaFeatures } from '../src/prompts/koa/features.js'
+// import { createProject } from '../src/create/index.js'
+import prompts from 'prompts'
+import path, { dirname } from 'path'
+import fs from 'fs'
+import { execSync } from 'child_process'
+import ora from 'ora'
+import { fileURLToPath } from 'url'
 
-// 处理 Ctrl+C 中断
-const onCancel = () => {
-  console.log('\n操作已取消');
-  process.exit(0);
-};
+import {
+  chooseFramework,
+  frontEndFeatures,
+  onCancel,
+  preCssFeatures,
+  backEndFeatures,
+  createProject
+} from '../src/prompts/questions.js'
 
-program
-  .command('create [name]')
-  .description('创建项目 create a project')
-  .option('-t, --template <template>')
-  .action(async (name, options) => {
-    try {
-      const questions = [];
-      
-      // 项目类型选择
-      questions.push({
-        type: 'select',
-        name: 'projectType',
-        message: '请选择项目类型：',
-        choices: [
-          { title: 'Vue', value: 'vue', description: '使用Vue.js框架创建项目' },
-          { title: 'Nuxt', value: 'nuxt', description: '使用Nuxt.js框架创建SSR项目' },
-          { title: 'Koa', value: 'koa', description: '使用Koa.js创建服务端项目' },
-          { title: 'React', value: 'react', description: '使用React.js框架创建项目' },
-          { title: '其他', value: 'other', description: '其他项目类型' },
-        ]
-      });
-      
-      // 如果没有提供名称，则询问
-      if (!name) {
-        questions.push({
-          type: 'text',
-          name: 'projectName',
-          message: '请输入项目名称：',
-          initial: (prev) => `my-${prev.projectType}-app`
-        });
-      }
-      
-      // 获取基本答案
-      const response = await prompts(questions, { onCancel });
-      
-      // 使用命令行提供的名称或询问的名称
-      const projectName = name || response.projectName;
-      
-      // 根据项目类型询问不同的问题
-      let template, features = [], cssPreprocessor;
-      
-      if (response.projectType === 'vue') {
-        // Vue项目特性选择
-        features = await promptFeatures();
-        
-        // CSS预处理器选择
-        if (features.includes('css-preprocessor')) {
-          cssPreprocessor = await promptCssPreprocessor();
-        }
-      } else if (response.projectType === 'nuxt') {
-        // Nuxt模板选择
-        template = await promptNuxtTemplate();
-        
-        // Nuxt模块选择
-        features = await promptNuxtFeatures();
-      } else if (response.projectType === 'koa') {
-        // Koa模板选择
-        template = await promptKoaTemplate();
-        
-        // Koa功能选择
-        features = await promptKoaFeatures();
-      } else if (response.projectType === 'react') {
-        // React模板选择
-        template = await promptReactTemplate();
-        
-        // React特性选择
-        features = await promptReactFeatures();
-      } else {
-        // 其他项目类型
-        template = options.template || await promptCustomTemplate();
-      }
-      
-      // 整理最终配置
-      const finalConfig = {
-        name: projectName,
-        type: response.projectType,
-        template,
-        features,
-        cssPreprocessor,
-        ...options
-      };
-      
-      // 显示配置信息
-      console.log('\n项目配置信息:');
-      console.log('------------------------------');
-      console.log(`项目名称: ${finalConfig.name}`);
-      console.log(`项目类型: ${finalConfig.type}`);
-      if (finalConfig.template) console.log(`使用模板: ${finalConfig.template}`);
-      if (finalConfig.features.length > 0) console.log(`选择的特性: ${finalConfig.features.join(', ')}`);
-      if (finalConfig.cssPreprocessor) console.log(`CSS预处理器: ${finalConfig.cssPreprocessor}`);
-      console.log('------------------------------');
-      
-      // 创建项目
-      console.log('\n开始创建项目...');
-      await createProject(finalConfig);
-      
-    } catch (error) {
-      console.error('发生错误:', error);
-      process.exit(1);
-    }
-  });
 
-// Vue特性选择
-async function promptFeatures() {
-  const { features } = await prompts({
-    type: 'multiselect',
-    name: 'features',
-    message: '请选择项目需要的特性:',
-    choices: [
-      { title: 'TypeScript', value: 'typescript', selected: false },
-      { title: 'Router', value: 'router', selected: true },
-      { title: 'Pinia', value: 'stores', selected: true },
-      { title: 'CSS 预处理器', value: 'css-preprocessor', selected: false },
-      { title: 'Linter / Formatter', value: 'linter', selected: true },
-      { title: 'Unit Testing', value: 'unit-testing', selected: false },
-      { title: 'E2E Testing', value: 'e2e-testing', selected: false },
-    ]
-  }, { onCancel });
-  
-  return features || [];
-}
 
-// CSS预处理器选择
-async function promptCssPreprocessor() {
-  const { cssPreprocessor } = await prompts({
-    type: 'select',
-    name: 'cssPreprocessor',
-    message: '选择CSS预处理器:',
-    choices: [
-      { title: 'Sass/SCSS', value: 'sass' },
-      { title: 'Less', value: 'less' },
-      { title: 'Stylus', value: 'stylus' }
-    ]
-  }, { onCancel });
-  
-  return cssPreprocessor;
-}
-
-// Nuxt模板选择
-async function promptNuxtTemplate() {
-  const { template } = await prompts({
-    type: 'select',
-    name: 'template',
-    message: '请选择Nuxt模板：',
-    choices: [
-      { title: 'Nuxt 3', value: 'nuxt3', description: '最新的Nuxt 3框架' },
-      { title: 'Nuxt 2', value: 'nuxt2', description: '稳定的Nuxt 2框架' }
-    ]
-  }, { onCancel });
-  
-  return template;
-}
-
-// Nuxt模块选择
-async function promptNuxtFeatures() {
-  const { features } = await prompts({
-    type: 'multiselect',
-    name: 'features',
-    message: '请选择项目需要的模块:',
-    choices: [
-      { title: 'Content', value: 'content', selected: false },
-      { title: 'Tailwind CSS', value: 'tailwind', selected: true },
-      { title: 'Image', value: 'image', selected: false },
-      { title: 'Auth', value: 'auth', selected: false },
-      { title: 'Color Mode', value: 'color-mode', selected: true },
-      { title: 'Google Fonts', value: 'google-fonts', selected: false },
-      { title: 'I18n', value: 'i18n', selected: false }
-    ]
-  }, { onCancel });
-  
-  return features || [];
-}
-
-// Koa模板选择
-async function promptKoaTemplate() {
-  const { template } = await prompts({
-    type: 'select',
-    name: 'template',
-    message: '请选择Koa模板：',
-    choices: [
-      { title: 'Koa基础模板', value: 'koa-basic', description: '基础的Koa服务器模板' },
-      { title: 'Koa + TypeScript', value: 'koa-typescript', description: '带TypeScript的Koa模板' },
-      { title: 'Koa + MongoDB', value: 'koa-mongodb', description: '集成MongoDB的Koa模板' }
-    ]
-  }, { onCancel });
-  
-  return template;
-}
-
-// Koa功能选择
-async function promptKoaFeatures() {
-  const { features } = await prompts({
-    type: 'multiselect',
-    name: 'features',
-    message: '请选择需要集成的功能:',
-    choices: [
-      { title: 'TypeScript', value: 'typescript', selected: false },
-      { title: '身份验证', value: 'auth', selected: true },
-      { title: '日志系统', value: 'logger', selected: true },
-      { title: '数据验证', value: 'validation', selected: true },
-      { title: 'CORS', value: 'cors', selected: true },
-      { title: 'Swagger API文档', value: 'swagger', selected: false },
-      { title: '单元测试', value: 'testing', selected: false }
-    ]
-  }, { onCancel });
-  
-  return features || [];
-}
-
-// React模板选择
-async function promptReactTemplate() {
-  const { template } = await prompts({
-    type: 'select',
-    name: 'template',
-    message: '请选择React模板：',
-    choices: [
-      { title: 'React + Vite', value: 'react-vite', description: '使用React和Vite构建工具' },
-      { title: 'Create React App', value: 'cra', description: '使用官方CRA模板' },
-      { title: 'Next.js', value: 'nextjs', description: 'React的SSR框架' }
-    ]
-  }, { onCancel });
-  
-  return template;
-}
-
-// React特性选择
-async function promptReactFeatures() {
-  const { features } = await prompts({
-    type: 'multiselect',
-    name: 'features',
-    message: '请选择项目需要的特性:',
-    choices: [
-      { title: 'TypeScript', value: 'typescript', selected: false },
-      { title: 'React Router', value: 'router', selected: true },
-      { title: 'Redux/Zustand', value: 'state-management', selected: true },
-      { title: 'CSS-in-JS', value: 'css-in-js', selected: false },
-      { title: 'ESLint', value: 'eslint', selected: true },
-      { title: 'Jest', value: 'jest', selected: false },
-      { title: 'React Testing Library', value: 'testing-library', selected: false }
-    ]
-  }, { onCancel });
-  
-  return features || [];
-}
-
-// 自定义模板
-async function promptCustomTemplate() {
-  const { template } = await prompts({
-    type: 'text',
-    name: 'template',
-    message: '请输入自定义模板名称：'
-  }, { onCancel });
-  
-  return template;
-}
-
-// 项目创建函数（保持与原来相同）
-async function createProject(config) {
-  const path = require('path');
-  const fs = require('fs');
-  const { execSync, spawnSync } = require('child_process');
-  const ora = require('ora');
-  
-  // 创建项目目录
-  const projectPath = path.resolve(process.cwd(), config.name);
-  
-  // 检查项目目录是否已存在
-  if (fs.existsSync(projectPath)) {
-    console.error(`\n错误: 目录 ${config.name} 已存在，请使用其他项目名称。`);
-    process.exit(1);
-  }
-  
-  console.log(`\n创建项目目录: ${projectPath}`);
-  fs.mkdirSync(projectPath, { recursive: true });
-  
-  let spinner;
-  
+program.command('create [name]').description('创建项目').option('-t, --template <template>').action(async (name, options) => {
   try {
-    // 根据不同项目类型使用不同的模板创建方法
-    switch (config.type) {
-      case 'vue':
-        spinner = ora('正在创建Vue项目...').start();
-        
-        // 创建基本项目结构
-        createVueProject(projectPath, config);
-        
-        spinner.succeed('Vue项目创建成功！');
-        break;
-        
-      case 'nuxt':
-        spinner = ora('正在创建Nuxt项目...').start();
-        
-        // 使用npx创建Nuxt项目
-        process.chdir(path.dirname(projectPath));
-        
-        if (config.template === 'nuxt3') {
-          execSync(`npx nuxi init ${config.name}`, { stdio: 'ignore' });
-        } else {
-          execSync(`npx create-nuxt-app ${config.name}`, { stdio: 'ignore' });
-        }
-        
-        // 安装选定的模块
-        process.chdir(projectPath);
-        
-        // 如果选择了Tailwind
-        if (config.features.includes('tailwind')) {
-          spinner.text = '安装Tailwind CSS...';
-          execSync('npm install -D tailwindcss postcss autoprefixer', { stdio: 'ignore' });
-          execSync('npx tailwindcss init', { stdio: 'ignore' });
-        }
-        
-        // 其他模块安装
-        const nuxtModules = [];
-        if (config.features.includes('content')) nuxtModules.push('@nuxt/content');
-        if (config.features.includes('image')) nuxtModules.push('@nuxt/image');
-        if (config.features.includes('auth')) nuxtModules.push('@nuxtjs/auth-next');
-        if (config.features.includes('color-mode')) nuxtModules.push('@nuxtjs/color-mode');
-        if (config.features.includes('google-fonts')) nuxtModules.push('@nuxtjs/google-fonts');
-        if (config.features.includes('i18n')) nuxtModules.push('@nuxtjs/i18n');
-        
-        if (nuxtModules.length > 0) {
-          spinner.text = '安装选定的Nuxt模块...';
-          execSync(`npm install ${nuxtModules.join(' ')}`, { stdio: 'ignore' });
-        }
-        
-        spinner.succeed('Nuxt项目创建成功！');
-        break;
-        
-      case 'koa':
-        spinner = ora('正在创建Koa项目...').start();
-        
-        // 创建基本的项目结构
-        fs.writeFileSync(path.join(projectPath, 'package.json'), JSON.stringify({
-          name: config.name,
-          version: '0.1.0',
-          private: true,
-          scripts: {
-            start: config.features.includes('typescript') ? 'ts-node src/index.ts' : 'node src/index.js',
-            dev: config.features.includes('typescript') ? 'nodemon --exec ts-node src/index.ts' : 'nodemon src/index.js'
-          }
-        }, null, 2));
-        
-        // 创建基本目录
-        const srcDir = path.join(projectPath, 'src');
-        fs.mkdirSync(srcDir);
-        
-        // 创建基本入口文件
-        const ext = config.features.includes('typescript') ? 'ts' : 'js';
-        fs.writeFileSync(path.join(srcDir, `index.${ext}`), 
-          `const Koa = require('koa');\nconst app = new Koa();\n\napp.use(async ctx => {\n  ctx.body = 'Hello World';\n});\n\napp.listen(3000, () => console.log('Server running on http://localhost:3000'));\n`
-        );
-        
-        // 安装依赖
-        process.chdir(projectPath);
-        spinner.text = '安装Koa依赖...';
-        execSync('npm install koa', { stdio: 'ignore' });
-        
-        // 安装开发依赖
-        spinner.text = '安装开发依赖...';
-        execSync('npm install nodemon --save-dev', { stdio: 'ignore' });
-        
-        // 安装特性依赖
-        const koaDeps = [];
-        const koaDevDeps = [];
-        
-        if (config.features.includes('typescript')) {
-          koaDevDeps.push('typescript', '@types/koa', 'ts-node');
-        }
-        if (config.features.includes('auth')) koaDeps.push('koa-jwt', 'jsonwebtoken');
-        if (config.features.includes('logger')) koaDeps.push('koa-logger');
-        if (config.features.includes('validation')) koaDeps.push('joi', 'koa-bodyparser');
-        if (config.features.includes('cors')) koaDeps.push('@koa/cors');
-        if (config.features.includes('swagger')) koaDeps.push('swagger-jsdoc', 'koa2-swagger-ui');
-        if (config.features.includes('testing')) koaDevDeps.push('jest', 'supertest');
-        
-        if (koaDeps.length > 0) {
-          spinner.text = '安装选定的依赖...';
-          execSync(`npm install ${koaDeps.join(' ')}`, { stdio: 'ignore' });
-        }
-        
-        if (koaDevDeps.length > 0) {
-          spinner.text = '安装选定的开发依赖...';
-          execSync(`npm install ${koaDevDeps.join(' ')} --save-dev`, { stdio: 'ignore' });
-        }
-        
-        spinner.succeed('Koa项目创建成功！');
-        break;
-        
-      case 'react':
-        spinner = ora('正在创建React项目...').start();
-        
-        // 根据模板选择创建React项目
-        process.chdir(path.dirname(projectPath));
-        
-        if (config.template === 'react-vite') {
-          execSync(`npm create vite@latest ${config.name} -- --template react${config.features.includes('typescript') ? '-ts' : ''}`, { stdio: 'ignore' });
-        } else if (config.template === 'cra') {
-          const craCommand = `npx create-react-app ${config.name}${config.features.includes('typescript') ? ' --template typescript' : ''}`;
-          execSync(craCommand, { stdio: 'ignore' });
-        } else if (config.template === 'nextjs') {
-          execSync(`npx create-next-app ${config.name}`, { stdio: 'ignore' });
-        }
-        
-        // 安装额外的依赖
-        process.chdir(projectPath);
-        const reactDeps = [];
-        
-        if (config.features.includes('router')) reactDeps.push('react-router-dom');
-        if (config.features.includes('state-management')) reactDeps.push(config.template === 'nextjs' ? 'zustand' : 'redux react-redux @reduxjs/toolkit');
-        if (config.features.includes('css-in-js')) reactDeps.push('styled-components');
-        
-        if (reactDeps.length > 0) {
-          spinner.text = '安装额外的依赖...';
-          execSync(`npm install ${reactDeps.join(' ')}`, { stdio: 'ignore' });
-        }
-        
-        spinner.succeed('React项目创建成功！');
-        break;
-        
-      default:
-        console.log('\n暂不支持此类型项目的自动创建，请手动设置项目。');
-        break;
+    // 选择框架
+    const questions = chooseFramework(name)
+    
+    // 获取基本答案
+    let response = await prompts(questions, { onCancel })
+    
+    // todo 这里要加一个没有名称的逻辑
+    const { projectType: type } = response
+    
+    // 前端项目
+    if (type === 'vue' || type === 'nuxt') {
+      // 获取前端项目需要的库（特性），内容是一个特性数组
+      const features = await frontEndFeatures()
+      
+      response.features = features
+      response.type = 'frontend'
+      
+      // css预处理器
+      if (features.includes('css-preprocessor')) {
+        response.preprocessor = await preCssFeatures()
+      }
+    } else if (type === 'koa') {
+      // 获取后端项目需要的库（特性），内容是一个特性数组
+      response.features = await backEndFeatures()
+      response.type = 'backend'
     }
     
-    // 提示成功信息和后续步骤
-    console.log('\n🎉 项目创建成功！');
-    console.log('\n开始使用:');
-    console.log(`  cd ${config.name}`);
-    console.log('  npm run dev (或相应的开发命令)');
-    console.log('\n祝您开发愉快！');
+    console.log('response', response)
     
+    if (!response.projectName) {
+      response.projectName = name || 'my-project'
+    }
+    
+    await createProject(response)
+    
+    // await createProject()
   } catch (error) {
-    if (spinner) spinner.fail('项目创建失败');
-    console.error('\n创建项目时出错:', error.message);
-    
-    // 尝试清理已创建的目录
-    console.log('\n正在清理...');
-    try {
-      fs.rmdirSync(projectPath, { recursive: true });
-    } catch (cleanupError) {
-      console.error(`无法清理项目目录: ${cleanupError.message}`);
-    }
-    
-    process.exit(1);
+    console.error('发生错误:', error)
+    process.exit(1)
   }
-}
+})
 
-/**
- * 创建Vue项目的函数
- * @param {string} projectPath - 项目路径
- * @param {Object} config - 项目配置
- */
-function createVueProject(projectPath, config) {
-  const fs = require('fs');
-  const path = require('path');
-  const ejs = require('ejs');
-  const { execSync } = require('child_process');
-  
-  // 创建基本目录结构
-  fs.mkdirSync(path.join(projectPath, 'src'), { recursive: true });
-  fs.mkdirSync(path.join(projectPath, 'src', 'assets'), { recursive: true });
-  fs.mkdirSync(path.join(projectPath, 'src', 'components'), { recursive: true });
-  fs.mkdirSync(path.join(projectPath, 'public'), { recursive: true });
-  
-  // 如果选择了路由，创建路由目录
-  if (config.features.includes('router')) {
-    fs.mkdirSync(path.join(projectPath, 'src', 'views'), { recursive: true });
-    fs.mkdirSync(path.join(projectPath, 'src', 'router'), { recursive: true });
-  }
-  
-  // 如果选择了状态管理，创建store目录
-  if (config.features.includes('stores')) {
-    fs.mkdirSync(path.join(projectPath, 'src', 'stores'), { recursive: true });
-  }
-  
-  // 使用TypeScript还是JavaScript
-  const fileExt = config.features.includes('typescript') ? 'ts' : 'js';
-  
-  // 渲染模板函数
-  function renderTemplate(templatePath, targetPath, data = {}) {
-    const templateDir = path.join(__dirname, '..', 'templates');
-    const templateContent = fs.readFileSync(path.join(templateDir, templatePath), 'utf-8');
-    const rendered = ejs.render(templateContent, { ...data, config });
-    fs.writeFileSync(targetPath, rendered);
-  }
-  
-  // 创建package.json
-  renderTemplate('vue/package.json.ejs', path.join(projectPath, 'package.json'));
-  
-  // 创建vite.config.js/ts
-  renderTemplate(`vue/vite.config.${fileExt}.ejs`, path.join(projectPath, `vite.config.${fileExt}`));
-  
-  // 创建index.html
-  renderTemplate('vue/index.html.ejs', path.join(projectPath, 'index.html'));
-  
-  // 创建main.js/ts
-  renderTemplate(`vue/main.${fileExt}.ejs`, path.join(projectPath, 'src', `main.${fileExt}`));
-  
-  // 创建App.vue
-  renderTemplate('vue/App.vue.ejs', path.join(projectPath, 'src', 'App.vue'));
-  
-  // 创建HelloWorld组件
-  renderTemplate('vue/components/HelloWorld.vue.ejs', path.join(projectPath, 'src', 'components', 'HelloWorld.vue'));
-  
-  // 如果选择了路由，创建路由文件
-  if (config.features.includes('router')) {
-    renderTemplate(`vue/router/index.${fileExt}.ejs`, path.join(projectPath, 'src', 'router', `index.${fileExt}`));
-    renderTemplate('vue/views/HomeView.vue.ejs', path.join(projectPath, 'src', 'views', 'HomeView.vue'));
-    renderTemplate('vue/views/AboutView.vue.ejs', path.join(projectPath, 'src', 'views', 'AboutView.vue'));
-  }
-  
-  // 如果选择了状态管理，创建store文件
-  if (config.features.includes('stores')) {
-    renderTemplate(`vue/store/index.${fileExt}.ejs`, path.join(projectPath, 'src', 'store', `index.${fileExt}`));
-  }
-  
-  // 创建.gitignore
-  renderTemplate('vue/gitignore.ejs', path.join(projectPath, '.gitignore'));
-  
-  // 创建README.md
-  renderTemplate('vue/README.md.ejs', path.join(projectPath, 'README.md'));
-  
-  // 复制Vue Logo
-  const logoSourcePath = path.join(__dirname, '..', 'templates', 'vue', 'logo.png');
-  const logoTargetPath = path.join(projectPath, 'src', 'assets', 'logo.png');
-  
-  if (fs.existsSync(logoSourcePath)) {
-    fs.copyFileSync(logoSourcePath, logoTargetPath);
-  } else {
-    console.log('警告: Vue logo图片未找到，请手动添加一个logo图片到src/assets目录。');
-  }
-  
-  // 如果选择了typescript，创建tsconfig.json
-  if (config.features.includes('typescript')) {
-    renderTemplate('vue/tsconfig.json.ejs', path.join(projectPath, 'tsconfig.json'));
-    renderTemplate('vue/tsconfig.node.json.ejs', path.join(projectPath, 'tsconfig.node.json'));
-  }
-  
-  // 如果选择了ESLint，创建.eslintrc.js
-  if (config.features.includes('linter')) {
-    renderTemplate('vue/eslintrc.js.ejs', path.join(projectPath, '.eslintrc.js'));
-  }
-  
-  // 如果环境中有npm，初始化项目依赖
-  try {
-    process.chdir(projectPath);
-    execSync('npm install', { stdio: 'ignore' });
-  } catch (error) {
-    console.log('无法自动安装依赖，请在创建后运行 npm install');
-  }
-}
+// 项目创建函数
 
 // 处理命令行参数
-program.parse(process.argv);
+program.parse(process.argv)
